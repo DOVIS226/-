@@ -1,4 +1,5 @@
 import apiClient from './api'
+import { SurveyCreateFormData } from '../types'
 
 // 学生端 - 智能问答相关API
 export const qaApi = {
@@ -51,14 +52,35 @@ export const teacherSurveyApi = {
     return apiClient.get('/teacher/surveys')
   },
   
-  // 创建问卷
-  createSurvey: async (surveyData: any) => {
+  // 创建问卷（包含题目）
+  createSurvey: async (surveyData: SurveyCreateFormData) => {
     return apiClient.post('/teacher/surveys', surveyData)
+  },
+  
+  // 发布问卷
+  publishSurvey: async (surveyId: string) => {
+    return apiClient.post(`/teacher/surveys/${surveyId}/publish`)
+  },
+  
+  // 取消发布问卷
+  unpublishSurvey: async (surveyId: string) => {
+    return apiClient.post(`/teacher/surveys/${surveyId}/unpublish`)
   },
   
   // 获取问卷结果
   getSurveyResults: async (surveyId: string) => {
     return apiClient.get(`/teacher/surveys/${surveyId}/results`)
+  },
+  
+  // 上传文件（用于问答题参考材料）
+  uploadFile: async (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post('/teacher/surveys/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
   },
 }
 

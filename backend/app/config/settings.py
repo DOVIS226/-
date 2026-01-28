@@ -10,10 +10,22 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     
-    # PostgreSQL数据库配置
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/education_db"
-    # 异步数据库URL（用于asyncpg）
-    ASYNC_DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/education_db"
+    # PostgreSQL数据库配置（支持环境变量）
+    DB_HOST: str = "localhost"
+    DB_PORT: int = 5432
+    DB_USER: str = "postgres"
+    DB_PASSWORD: str = "postgres"
+    DB_NAME: str = "education_db"
+    
+    @property
+    def DATABASE_URL(self) -> str:
+        """构建数据库连接URL"""
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    
+    @property
+    def ASYNC_DATABASE_URL(self) -> str:
+        """构建异步数据库连接URL"""
+        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     # 向量数据库配置（知识库）
     VECTOR_DB_PATH: str = "./data/chroma_db"

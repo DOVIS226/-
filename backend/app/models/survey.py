@@ -47,12 +47,16 @@ class Question(Base):
     question_order = Column(Integer, nullable=False)
     score = Column(DECIMAL(10, 2), nullable=False, default=0)
     difficulty = Column(String(20), default='medium')
-    options = Column(JSONB)  # 选项
+    options = Column(JSONB)  # 选项（选择题用）
     correct_answer = Column(JSONB)  # 正确答案
     answer_explanation = Column(Text)
     tags = Column(ARRAY(Text))
     knowledge_points = Column(ARRAY(Text))
     is_required = Column(Boolean, default=True, nullable=False)
+    # 问答题专用字段
+    reference_files = Column(JSONB)  # 参考材料（图片/文件URL列表）
+    min_word_count = Column(Integer)  # 最小作答字数限制
+    grading_criteria = Column(JSONB)  # 评分标准（包含分值分配、关键词要求等）
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

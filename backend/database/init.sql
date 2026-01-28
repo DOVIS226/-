@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 启用向量扩展（如使用pgvector）
-CREATE EXTENSION IF NOT EXISTS vector;
+--CREATE EXTENSION IF NOT EXISTS vector;
 
 -- 创建更新时间触发器函数
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -206,6 +206,10 @@ CREATE TABLE IF NOT EXISTS questions (
     tags TEXT[],
     knowledge_points TEXT[],
     is_required BOOLEAN NOT NULL DEFAULT true,
+    -- 问答题专用字段
+    reference_files JSONB,  -- 参考材料（图片/文件URL列表）
+    min_word_count INTEGER,  -- 最小作答字数限制
+    grading_criteria JSONB,  -- 评分标准（包含分值分配、关键词要求等）
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -377,7 +381,9 @@ CREATE TABLE IF NOT EXISTS document_chunks (
     document_id UUID NOT NULL REFERENCES knowledge_documents(id) ON DELETE CASCADE,
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
-    embedding_vector VECTOR(1536),
+    -- 向量字段：如果启用 pgvector 扩展，可改为 VECTOR(1536)
+    -- 当前使用 BYTEA 类型存储向量数据（二进制格式）
+    embedding_vector BYTEA,
     token_count INTEGER,
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -416,4 +422,14 @@ $$ LANGUAGE plpgsql;
 -- =====================================================
 -- 完成
 -- =====================================================
-COMMENT ON DATABASE current_database() IS '智能教学平台数据库 v1.0.0';
+-- 使用动态 SQL 设置数据库注释
+DO $$
+DECLARE
+    db_name TEXT;
+BEGIN
+    -- 获取当前数据库名称
+    SELECT current_database() INTO db_name;
+    
+    -- 动态执行 COMMENT ON DATABASE 语句
+    EXECUTE format('COMMENT ON DATABASE %I IS %L', db_name, '智能教学平台数据库 v1.0.0');
+END $$;
