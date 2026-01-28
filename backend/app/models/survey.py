@@ -13,8 +13,8 @@ class Survey(Base):
     title = Column(String(200), nullable=False)
     description = Column(Text)
     teacher_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id"), index=True)
-    class_id = Column(UUID(as_uuid=True), ForeignKey("classes.id"))
+    course_id = Column(UUID(as_uuid=True), index=True)  # 暂时移除外键约束
+    class_id = Column(UUID(as_uuid=True))  # 暂时移除外键约束
     survey_type = Column(String(50), nullable=False, default='questionnaire')  # 'questionnaire' or 'exam'
     target_students = Column(JSONB)  # 目标学生ID列表
     generation_method = Column(String(50), nullable=False, default='manual')
@@ -41,7 +41,7 @@ class Question(Base):
     __tablename__ = "questions"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    survey_id = Column(UUID(as_uuid=True), ForeignKey("surveys.id", ondelete='CASCADE'), nullable=False, index=True)
+    survey_id = Column(UUID(as_uuid=True), ForeignKey("surveys.id", ondelete='CASCADE'), nullable=True, index=True)
     question_type = Column(String(50), nullable=False, index=True)
     question_text = Column(Text, nullable=False)
     question_order = Column(Integer, nullable=False)
@@ -112,7 +112,7 @@ class QuestionnaireSubmission(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     survey_id = Column(UUID(as_uuid=True), ForeignKey("surveys.id", ondelete='CASCADE'), nullable=False)
-    student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete='CASCADE'), nullable=False, index=True)
+    student_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     total_score = Column(DECIMAL(10, 2))
     time_spent = Column(Integer, nullable=False, default=0)  # 秒
     submit_time = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)

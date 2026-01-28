@@ -194,7 +194,7 @@ EXECUTE FUNCTION update_updated_at_column();
 -- 3.2 题目表
 CREATE TABLE IF NOT EXISTS questions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    survey_id UUID NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
+    survey_id UUID REFERENCES surveys(id) ON DELETE CASCADE,
     question_type VARCHAR(50) NOT NULL,
     question_text TEXT NOT NULL,
     question_order INTEGER NOT NULL,

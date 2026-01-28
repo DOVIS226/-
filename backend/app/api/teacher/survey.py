@@ -7,6 +7,19 @@ import uuid
 from datetime import datetime
 from app.services.survey_service import survey_service
 from app.database import get_db
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.schemas.question import (
+    QuestionCreate,
+    QuestionResponse,
+    QuestionBatchCreate,
+    QuestionBatchResponse
+)
+from app.services.question_service import QuestionService
 
 router = APIRouter()
 
@@ -27,6 +40,7 @@ class SurveyCreate(BaseModel):
     title: str
     description: Optional[str] = None
     questions: List[QuestionCreate]
+    questions: List[Dict[str, Any]]
 
 class SurveyInfo(BaseModel):
     id: str
@@ -208,3 +222,105 @@ async def get_survey_results(survey_id: str):
             }
         }
     )
+
+
+# ============ 题目管理相关接口 ============
+
+@router.post("/questions", response_model=QuestionResponse)
+async def create_question(
+    question: QuestionCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    手动创建单个题目（不关联问卷）
+    用于题库管理，后续可以添加到问卷中
+    """
+    question_service = QuestionService(db)
+    try:
+        created_question = await question_service.create_question(question)
+        return created_question
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建题目失败: {str(e)}")
+
+
+@router.post("/{survey_id}/questions", response_model=QuestionResponse)
+async def add_question_to_survey(
+    survey_id: str,
+    question: QuestionCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    向指定问卷添加题目
+    """
+    question_service = QuestionService(db)
+    try:
+        created_question = await question_service.create_question(
+            question,
+            survey_id=survey_id
+        )
+        return created_question
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"添加题目失败: {str(e)}")
+
+
+@router.post("/{survey_id}/questions/batch", response_model=QuestionBatchResponse)
+async def add_questions_batch(
+    survey_id: str,
+    questions: List[QuestionCreate],
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    批量向问卷添加题目
+    """
+    question_service = QuestionService(db)
+    try:
+        result = await question_service.create_questions_batch(
+            survey_id=survey_id,
+            questions=questions
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"批量添加题目失败: {str(e)}")
+
+
+@router.get("/{survey_id}/questions", response_model=List[QuestionResponse])
+async def get_survey_questions(
+    survey_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    获取问卷的所有题目
+    """
+    question_service = QuestionService(db)
+    try:
+        questions = await question_service.get_questions_by_survey(survey_id)
+        return questions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取题目列表失败: {str(e)}")
+
+
+@router.delete("/questions/{question_id}")
+async def delete_question(
+    question_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    删除题目
+    """
+    question_service = QuestionService(db)
+    try:
+        success = await question_service.delete_question(question_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="题目不存在")
+        return {"success": True, "message": "题目删除成功"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除题目失败: {str(e)}")
+

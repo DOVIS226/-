@@ -83,3 +83,31 @@ export const teacherSurveyApi = {
     })
   },
 }
+
+// 教师端 - 题目管理API
+export const questionApi = {
+  // 创建单个题目（不关联问卷）
+  createQuestion: async (questionData: any) => {
+    return apiClient.post('/teacher/surveys/questions', questionData)
+  },
+
+  // 向问卷添加题目
+  addQuestionToSurvey: async (surveyId: string, questionData: any) => {
+    return apiClient.post(`/teacher/surveys/${surveyId}/questions`, questionData)
+  },
+
+  // 批量添加题目
+  addQuestionsBatch: async (surveyId: string, questions: any[]) => {
+    return apiClient.post(`/teacher/surveys/${surveyId}/questions/batch`, questions)
+  },
+
+  // 获取问卷题目列表
+  getSurveyQuestions: async (surveyId: string) => {
+    return apiClient.get(`/teacher/surveys/${surveyId}/questions`)
+  },
+
+  // 删除题目
+  deleteQuestion: async (questionId: string) => {
+    return apiClient.delete(`/teacher/surveys/questions/${questionId}`)
+  },
+}
