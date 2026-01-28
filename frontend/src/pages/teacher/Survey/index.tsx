@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import QuestionEditor from '../../../components/QuestionEditor'
+import { questionApi } from '../../../services'
 
 type CreateMode = 'manual' | 'ai' | 'knowledge' | null
 type SurveyStatus = 'draft' | 'published'
@@ -16,9 +18,11 @@ interface Survey {
 const TeacherSurvey = () => {
   const [createMode, setCreateMode] = useState<CreateMode>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showQuestionEditor, setShowQuestionEditor] = useState(false)
   const [aiDescription, setAiDescription] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
-  
+  const [questions, setQuestions] = useState<any[]>([])
+
   // 模拟问卷列表
   const [surveys, setSurveys] = useState<Survey[]>([
     {
@@ -72,6 +76,46 @@ const TeacherSurvey = () => {
     }
   }
 
+  // 打开题目编辑器
+  const handleOpenQuestionEditor = () => {
+    setShowQuestionEditor(true)
+  }
+
+  // 保存题目
+  const handleSaveQuestion = async (questionData: any) => {
+    try {
+      // 调用后端 API 创建题目
+      const result = await questionApi.createQuestion(questionData)
+
+      // 添加到本地题目列表
+      setQuestions([...questions, result])
+
+      // 关闭编辑器
+      setShowQuestionEditor(false)
+
+      alert('题目添加成功！')
+    } catch (error) {
+      console.error('添加题目失败:', error)
+      alert('添加题目失败，请重试')
+    }
+  }
+
+  // 删除题目
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (!confirm('确定要删除这道题目吗？')) {
+      return
+    }
+
+    try {
+      await questionApi.deleteQuestion(questionId)
+      setQuestions(questions.filter(q => q.id !== questionId))
+      alert('题目删除成功！')
+    } catch (error) {
+      console.error('删除题目失败:', error)
+      alert('删除题目失败，请重试')
+    }
+  }
+
   const handleGenerate = () => {
     if (createMode === 'ai' || createMode === 'knowledge') {
       if (!aiDescription.trim()) {
@@ -80,11 +124,11 @@ const TeacherSurvey = () => {
       }
       alert(`正在使用${createMode === 'ai' ? 'AI' : 'AI+知识库'}生成问卷...\n描述: ${aiDescription}`)
     } else if (createMode === 'manual') {
-      if (!uploadedFile) {
+      if (!uploadedFile && questions.length === 0) {
         alert('请上传文件或手动添加题目')
         return
       }
-      alert(`正在处理文件: ${uploadedFile.name}`)
+      alert(`已添加 ${questions.length} 道题目`)
     }
     setShowCreateModal(false)
     setCreateMode(null)
@@ -316,9 +360,62 @@ const TeacherSurvey = () => {
                     </div>
                   </div>
                   <div className="text-center text-gray-400">或</div>
-                  <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <button
+                    onClick={handleOpenQuestionEditor}
+                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     手动添加题目
                   </button>
+
+                  {/* 已添加的题目列表 */}
+                  {questions.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">
+                        已添加题目 ({questions.length})
+                      </h3>
+                      <div className="space-y-2">
+                        {questions.map((question, index) => (
+                          <div
+                            key={question.id || index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <span className="text-sm font-medium text-gray-900">
+                                {index + 1}. {question.question_text}
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500">
+                                ({question.question_type === 'single_choice' ? '单选' :
+                                  question.question_type === 'multiple_choice' ? '多选' : '填空'})
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteQuestion(question.id)}
+                              className="ml-3 text-red-600 hover:text-red-700 text-sm"
+                            >
+                              删除
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 题目编辑器弹窗 */}
+                  {showQuestionEditor && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 rounded-t-2xl">
+                          <h3 className="text-xl font-bold text-gray-900">添加题目</h3>
+                        </div>
+                        <div className="p-6">
+                          <QuestionEditor
+                            onSave={handleSaveQuestion}
+                            onCancel={() => setShowQuestionEditor(false)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div>

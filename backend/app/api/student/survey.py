@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 router = APIRouter()
 
@@ -9,13 +9,13 @@ class Question(BaseModel):
     id: str
     text: str
     type: str
-    options: List[str] | None = None
+    options: Optional[List[str]] = None
     required: bool = True
 
 class Survey(BaseModel):
     id: str
     title: str
-    description: str | None = None
+    description: Optional[str] = None
     status: str
     questions: List[Question]
 

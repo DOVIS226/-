@@ -1,10 +1,8 @@
 from sqlalchemy import Column, String, Integer, DateTime, Text, Boolean, ForeignKey, DECIMAL
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 import uuid
-
-Base = declarative_base()
+from app.database import Base
 
 class QARecord(Base):
     """问答记录模型"""
@@ -12,7 +10,7 @@ class QARecord(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     student_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id"), index=True)
+    course_id = Column(UUID(as_uuid=True), index=True)  # 暂时移除外键约束
     question = Column(Text, nullable=False)
     answer = Column(Text)
     answer_type = Column(String(50))  # 'ai' or 'knowledge_base'
@@ -32,7 +30,7 @@ class QASession(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     student_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(200))
-    course_id = Column(UUID(as_uuid=True), ForeignKey("courses.id"))
+    course_id = Column(UUID(as_uuid=True))  # 暂时移除外键约束
     message_count = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
