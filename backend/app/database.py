@@ -9,17 +9,22 @@ os.environ['PGCLIENTENCODING'] = 'UTF8'
 os.environ.setdefault('LANG', 'en_US.UTF-8')
 os.environ.setdefault('LC_ALL', 'en_US.UTF-8')
 
-# 创建数据库引擎
+# 创建数据库引擎（延迟连接，不立即验证连接）
+connect_args = {
+    'client_encoding': 'utf8',
+    'options': '-c client_encoding=utf8'
+}
+# 如果是 PostgreSQL，添加连接超时
+if 'postgresql' in settings.DATABASE_URL.lower():
+    connect_args['connect_timeout'] = 5
+
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
     echo=settings.DEBUG,
-    connect_args={
-        'client_encoding': 'utf8',
-        'options': '-c client_encoding=utf8'
-    }
+    connect_args=connect_args
 )
 
 # 创建会话工厂

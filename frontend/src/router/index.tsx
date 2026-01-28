@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import ProtectedRoute from '@/components/ProtectedRoute'
 import StudentLayout from '@/layouts/StudentLayout'
 import TeacherLayout from '@/layouts/TeacherLayout'
 import Login from '@/pages/Login'
@@ -14,34 +13,20 @@ import TeacherProfile from '@/pages/teacher/Profile'
 const AppRouter = () => {
   return (
     <Routes>
-      {/* 登录和注册路由（公开访问） */}
+      {/* 登录和注册路由 */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* 学生端路由（需要登录且角色为student） */}
-      <Route 
-        path="/student" 
-        element={
-          <ProtectedRoute requiredRole="student">
-            <StudentLayout />
-          </ProtectedRoute>
-        }
-      >
+      {/* 学生端路由 */}
+      <Route path="/student" element={<StudentLayout />}>
         <Route index element={<Navigate to="qa" replace />} />
         <Route path="qa" element={<StudentQA />} />
         <Route path="survey" element={<StudentSurvey />} />
         <Route path="profile" element={<StudentProfile />} />
       </Route>
 
-      {/* 教师端路由（需要登录且角色为teacher） */}
-      <Route 
-        path="/teacher" 
-        element={
-          <ProtectedRoute requiredRole="teacher">
-            <TeacherLayout />
-          </ProtectedRoute>
-        }
-      >
+      {/* 教师端路由 */}
+      <Route path="/teacher" element={<TeacherLayout />}>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<TeacherDashboard />} />
         <Route path="survey" element={<TeacherSurvey />} />
@@ -50,9 +35,6 @@ const AppRouter = () => {
 
       {/* 默认重定向到登录页 */}
       <Route path="/" element={<Navigate to="/login" replace />} />
-      
-      {/* 404页面也重定向到登录页 */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
 }

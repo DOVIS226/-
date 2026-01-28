@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import ManualQuestionForm from '../../../components/ManualQuestionForm'
+import { QuestionFormData, SurveyCreateFormData } from '../../types'
+import { teacherSurveyApi } from '../../../services'
 
 type CreateMode = 'manual' | 'ai' | 'knowledge' | null
 type SurveyStatus = 'draft' | 'published'
@@ -18,6 +21,13 @@ const TeacherSurvey = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [aiDescription, setAiDescription] = useState('')
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  
+  // 手动添加题目相关状态
+  const [showManualQuestionModal, setShowManualQuestionModal] = useState(false)
+  const [questions, setQuestions] = useState<QuestionFormData[]>([])
+  const [surveyTitle, setSurveyTitle] = useState('')
+  const [surveyDescription, setSurveyDescription] = useState('')
+  const [isPublishing, setIsPublishing] = useState(false)
   
   // 模拟问卷列表
   const [surveys, setSurveys] = useState<Survey[]>([
@@ -316,7 +326,13 @@ const TeacherSurvey = () => {
                     </div>
                   </div>
                   <div className="text-center text-gray-400">或</div>
-                  <button className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  <button 
+                    onClick={() => {
+                      setShowCreateModal(false)
+                      setShowManualQuestionModal(true)
+                    }}
+                    className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
                     手动添加题目
                   </button>
                 </>
@@ -361,6 +377,293 @@ const TeacherSurvey = () => {
                 {createMode === 'manual' ? '开始识别' : '生成问卷'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 手动添加题目模态框 */}
+      {showManualQuestionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl z-10">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-gray-800">📝 手动创建问卷</h3>
+                <button
+                  onClick={() => {
+                    setShowManualQuestionModal(false)
+                    setQuestions([])
+                    setSurveyTitle('')
+                    setSurveyDescription('')
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* 问卷基本信息 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  问卷标题 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={surveyTitle}
+                  onChange={(e) => setSurveyTitle(e.target.value)}
+                  placeholder="请输入问卷标题..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  问卷描述（可选）
+                </label>
+                <textarea
+                  value={surveyDescription}
+                  onChange={(e) => setSurveyDescription(e.target.value)}
+                  placeholder="请输入问卷描述..."
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none min-h-[80px] resize-none"
+                  rows={3}
+                />
+              </div>
+
+              {/* 题目列表 */}
+              {questions.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-800">
+                      已添加题目 ({questions.length})
+                    </h4>
+                  </div>
+                  <div className="space-y-3">
+                    {questions.map((q, index) => (
+                      <div
+                        key={index}
+                        className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                题目 {index + 1}
+                              </span>
+                              <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
+                                {q.questionType === 'single_choice' ? '选择题' : 
+                                 q.questionType === 'fill_blank' ? '填空题' : '问答题'}
+                              </span>
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">
+                                {q.score} 分
+                              </span>
+                            </div>
+                            <p className="text-gray-800 font-medium mb-1">{q.questionText}</p>
+                            {q.questionType === 'single_choice' && q.options && (
+                              <div className="mt-2 space-y-1">
+                                {q.options.map((opt) => (
+                                  <div key={opt.key} className="text-sm text-gray-600">
+                                    {opt.key}. {opt.value}
+                                    {opt.isCorrect && (
+                                      <span className="ml-2 text-green-600 font-medium">✓ 正确答案</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {q.questionType === 'fill_blank' && q.correctAnswers && (
+                              <div className="mt-2 text-sm text-gray-600">
+                                答案: {q.correctAnswers.join(', ')}
+                              </div>
+                            )}
+                            {q.questionType === 'essay' && (
+                              <div className="mt-2 text-sm text-gray-600">
+                                {q.minWordCount && <div>最少字数: {q.minWordCount}</div>}
+                                {q.gradingCriteria && (
+                                  <div>评分标准: {q.gradingCriteria.scoreDistribution.length} 项</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setQuestions(questions.filter((_, i) => i !== index))
+                            }}
+                            className="ml-4 text-red-500 hover:text-red-700 text-xl font-bold"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 添加题目表单 */}
+              <div className="border-t border-gray-200 pt-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                  {questions.length === 0 ? '添加第一道题目' : '添加下一道题目'}
+                </h4>
+                <ManualQuestionForm
+                  onSave={(question) => {
+                    setQuestions([...questions, question])
+                    // 滚动到底部显示新添加的题目
+                    setTimeout(() => {
+                      const modal = document.querySelector('.max-h-\\[90vh\\]')
+                      if (modal) {
+                        modal.scrollTop = modal.scrollHeight
+                      }
+                    }, 100)
+                  }}
+                  onCancel={() => {
+                    // 重置表单后继续添加题目
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* 底部操作栏 */}
+            {questions.length > 0 && (
+              <div className="sticky bottom-0 bg-gray-50 px-6 py-4 rounded-b-2xl border-t border-gray-200 flex justify-between items-center">
+                <div className="text-sm text-gray-600">
+                  共 {questions.length} 道题目，总分 {questions.reduce((sum, q) => sum + q.score, 0)} 分
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowManualQuestionModal(false)
+                      setQuestions([])
+                      setSurveyTitle('')
+                      setSurveyDescription('')
+                    }}
+                    className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!surveyTitle.trim()) {
+                        alert('请输入问卷标题')
+                        return
+                      }
+                      if (questions.length === 0) {
+                        alert('请至少添加一道题目')
+                        return
+                      }
+
+                      setIsPublishing(true)
+                      try {
+                        // 准备题目数据
+                        const questionsData = await Promise.all(questions.map(async (q, index) => {
+                          const questionData: any = {
+                            questionType: q.questionType,
+                            questionText: q.questionText,
+                            questionOrder: index + 1,
+                            score: q.score,
+                            answerExplanation: q.answerExplanation,
+                          }
+
+                          if (q.questionType === 'single_choice' && q.options) {
+                            questionData.options = q.options.map(opt => ({
+                              key: opt.key,
+                              value: opt.value,
+                            }))
+                            questionData.correctAnswer = q.options.find(opt => opt.isCorrect)?.key
+                          }
+
+                          if (q.questionType === 'fill_blank' && q.correctAnswers) {
+                            questionData.correctAnswer = q.correctAnswers
+                          }
+
+                          if (q.questionType === 'essay') {
+                            // 上传文件（如果有）
+                            if (q.referenceFiles && q.referenceFiles.length > 0) {
+                              const uploadedFileUrls: string[] = []
+                              for (const file of q.referenceFiles) {
+                                try {
+                                  const result = await teacherSurveyApi.uploadFile(file)
+                                  const fileUrl = result.data?.url || result.url
+                                  if (fileUrl) {
+                                    uploadedFileUrls.push(fileUrl)
+                                  }
+                                } catch (error) {
+                                  console.error('文件上传失败:', error)
+                                }
+                              }
+                              questionData.referenceFiles = uploadedFileUrls
+                            }
+                            questionData.minWordCount = q.minWordCount
+                            questionData.gradingCriteria = q.gradingCriteria
+                          }
+
+                          return questionData
+                        }))
+
+                        // 创建问卷
+                        const surveyData: SurveyCreateFormData = {
+                          title: surveyTitle.trim(),
+                          description: surveyDescription.trim() || undefined,
+                          questions: questionsData,
+                        }
+
+                        const result = await teacherSurveyApi.createSurvey(surveyData)
+
+                        // 兼容不同返回结构，确保拿到 id
+                        const surveyId = result?.id || result?.data?.id || result?.data?.data?.id
+                        if (!surveyId) {
+                          console.error('createSurvey 返回值:', result)
+                          alert('创建问卷未返回 id，发布失败，请检查后端日志')
+                          setIsPublishing(false)
+                          return
+                        }
+
+                        // 发布问卷
+                        const publishResult = await teacherSurveyApi.publishSurvey(surveyId)
+
+                        // 将新发布的问卷添加到列表中，确保"我的问卷"立即可见
+                        const createdAtRaw = result?.created_at || result?.data?.created_at
+                        const publishedAtRaw = publishResult?.data?.published_at || publishResult?.published_at
+                        const formatDate = (value?: string) => value ? value.split('T')[0] : new Date().toISOString().split('T')[0]
+
+                        setSurveys((prev) => [
+                          {
+                            id: surveyId,
+                            title: surveyTitle.trim(),
+                            description: surveyDescription.trim(),
+                            questionCount: questions.length,
+                            status: 'published',
+                            createdAt: formatDate(createdAtRaw),
+                            publishedAt: formatDate(publishedAtRaw),
+                          },
+                          ...prev,
+                        ])
+
+                        alert('问卷发布成功！')
+                        setShowManualQuestionModal(false)
+                        setQuestions([])
+                        setSurveyTitle('')
+                        setSurveyDescription('')
+                      } catch (error: any) {
+                        console.error('发布失败:', error)
+                        const msg =
+                          error?.response?.data?.message ||
+                          error?.response?.data?.detail ||
+                          error?.message ||
+                          '发布失败，请重试'
+                        alert(msg)
+                      } finally {
+                        setIsPublishing(false)
+                      }
+                    }}
+                    disabled={isPublishing}
+                    className="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isPublishing ? '发布中...' : '🚀 发布问卷'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
